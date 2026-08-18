@@ -1,13 +1,15 @@
 # Kube Huddle
 
-**Apps that talk should live close. Kube Huddle finds the low-latency huddles in your cluster from real traffic — then tells you where to replicate or migrate services to keep the huddle tight.**
+**Apps that talk should live close. Huddle finds the low-latency huddles in your cluster from real traffic — then tells you where to replicate or migrate services to keep the huddle tight.**
 
-Networks inside a Kubernetes cluster aren't flat. A pod on `node-a` and a pod on
-`node-b` in the same zone might see 1 ms between them; the same pod pair across
-zones might see 25 ms. Most of the time you don't notice, because you don't
-measure it — until a hot pair straddles a network barrier and every request
-pays the tax. Kube Huddle *looks* at the calls your apps already make, groups
-your nodes by the latency between them, and tells you where each service belongs.
+Networks inside a Kubernetes cluster aren't necessarily flat. A pod on `node-a` and
+a pod on `node-b` in the same zone might see 1 ms between them; the same pod pair 
+across zones might see 25 ms. Zones are an exaggerated example, but there are several
+other sources as well - such as across data centers, network NICs, hardware QoS, etc
+Most of the time you don't notice, because you don't measure it — until a hot pair 
+straddles a network barrier and every request pays the tax. Kube Huddle *looks* at 
+the calls your apps already make, groups your nodes by the latency between them, and 
+tells you where each service belongs.
 
 Kube Huddle reads your existing telemetry (Cilium/Hubble, Istio, OTel, or
 mesh-style Prometheus histograms) and gives you two kinds of output:
@@ -28,7 +30,7 @@ webhooks, no operator. Just guidance.
 
 ## Two outputs, one analysis pipeline
 
-Both outputs come from the same four-stage engine that rebuilds the network's
+Both outputs come from a four-stage engine that rebuilds the network's
 real shape from the calls your workloads make:
 
 1. **Smooth** each interaction pair's latency series (exponential smoothing;
@@ -70,7 +72,7 @@ node to list its workloads.
 
 ### Replicate-vs-migrate recommendations
 
-For each candidate workload (DaemonSets excluded):
+For each candidate workload (DaemonSets excluded, since they are supposed to run per node):
 
 - **Default: replicate** — one instance per island the workload interacts with.
 - **Migrate** — when the workload's cross-group traffic is small enough that
