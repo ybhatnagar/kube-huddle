@@ -5,9 +5,11 @@
 Networks inside a Kubernetes cluster aren't necessarily flat. A pod on `node-a` and
 a pod on `node-b` in the same zone might see 1 ms between them; the same pod pair 
 across zones might see 25 ms. Zones are an exaggerated example, but there are several
-other sources as well - such as across data centers, network NICs, hardware QoS, etc
-Most of the time you don't notice, because you don't measure it — until a hot pair 
-straddles a network barrier and every request pays the tax. Kube Huddle *looks* at 
+latency other sources as well - such as across data centers, network NICs, hardware QoS, etc
+
+Most of the time you don't notice, because you don't measure it - since only some random 
+requests pay this tax, depending on which nodes the host and destination pods are running.
+The more sparse your nodes are, more this unpredictability is. Kube Huddle *looks* at 
 the calls your apps already make, groups your nodes by the latency between them, and 
 tells you where each service belongs.
 
