@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Kube Huddle</title>
+<style>
+  :root{
+    --bg:#f5f7f9; --surface:#ffffff; --surface2:#fafbfc; --border:#e4e7eb; --border2:#d3d8de;
+    --text:#1b2430; --muted:#657084; --faint:#8a93a3;
+    --accent:#2563eb; --accent-bg:#eaf1fe; --accent-br:#c5d9fb;
+    --green:#127a4a; --green-bg:#e7f6ee; --green-br:#bfe6d0;
+    --amber:#8a5a06; --amber-bg:#fbf1dd; --amber-br:#ecd8a8;
+    --red:#b02a2a; --red-bg:#fbeeee; --red-br:#e6c3c3;
+    --purple:#5b46c4; --purple-bg:#eeeafb; --topbar:#0f2436; --radius:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .topbar{background:var(--topbar);color:#fff;height:52px;display:flex;align-items:center;padding:0 20px;gap:10px}
+  .topbar .logo{width:26px;height:26px;border-radius:6px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px}
+  .topbar h1{font-size:15px;font-weight:500;margin:0}
+  .topbar .env{margin-left:auto;font-size:12px;color:#9fb0c2;display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;display:inline-block}
+  .modebar{display:flex;align-items:center;gap:12px;padding:11px 24px;background:var(--surface2);border-bottom:1px solid var(--border)}
+  .seg{display:inline-flex;border:1px solid var(--border2);border-radius:22px;overflow:hidden}
+  .seg-btn{border:none;background:var(--surface);color:var(--muted);padding:7px 16px;font-size:13px;cursor:pointer}
+  .seg-btn.active{background:var(--accent);color:#fff}
+  .steps{display:flex;gap:6px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;user-select:none}
+  .step .n{width:20px;height:20px;border-radius:50%;background:#eef1f4;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+  .step.active{border-color:var(--accent-br);background:var(--accent-bg);color:var(--accent)}
+  .step.active .n{background:var(--accent);color:#fff}
+  .step.done .n{background:var(--green);color:#fff}
+  .sep{color:var(--faint);align-self:center}
+  main{max-width:1080px;margin:0 auto;padding:26px 24px 60px}
+  main.wide{max-width:1280px}
+  .screen{display:none} .screen.show{display:block}
+  h2{font-size:20px;font-weight:600;margin:0 0 4px}
+  h3.sec{font-size:15.5px;font-weight:600;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:13.5px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  .grid{display:grid;gap:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  label.f{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
+  input[type=text],input[type=url],input[type=password],input[type=number],select,textarea{
+    width:100%;height:36px;border:1px solid var(--border2);border-radius:var(--radius);padding:0 11px;font-size:13.5px;background:var(--surface);color:var(--text)}
+  textarea{height:auto;padding:9px 11px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+  .btn{height:36px;padding:0 16px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{background:var(--surface2)} .btn:disabled{opacity:.5;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.ghost{border-color:transparent;color:var(--accent);padding:0 8px}
+  .btn.ghost.danger{background:transparent;color:var(--red);border-color:var(--red-br)}
+  .btn.sm{height:30px;font-size:12.5px;padding:0 12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .pill.blue{background:var(--accent-bg);color:var(--accent)} .pill.green{background:var(--green-bg);color:var(--green)}
+  .pill.amber{background:var(--amber-bg);color:var(--amber)} .pill.gray{background:#eef1f4;color:var(--muted)}
+  .muted{color:var(--muted)} .small{font-size:12.5px}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .hint{background:#f0f5fb;border:1px solid #dbe6f4;border-radius:var(--radius);padding:9px 12px;font-size:12.5px;color:#3a5675;display:flex;gap:8px;align-items:flex-start}
+  .spin{width:15px;height:15px;border:2px solid #c9d3df;border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:-3px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .rstep{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:13.5px}
+  .srccard{border:1px solid var(--border);border-radius:10px;padding:13px 15px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;background:var(--surface)}
+  .srccard.on{border-color:var(--accent-br);background:var(--accent-bg)}
+  .srccard .ic{width:30px;height:30px;border-radius:7px;background:#eef1f4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--muted)}
+  .srccard.on .ic{background:var(--accent);color:#fff}
+  .clgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .clcard{border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;background:var(--surface)}
+  .clcard:hover{border-color:var(--accent-br);background:var(--surface2)}
+  .clcard .k8s{width:44px;height:44px;border-radius:10px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .clcard .k8s svg{width:28px;height:28px}
+  .clcard .cn{font-weight:600;font-size:14px;word-break:break-all}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:2px 0 14px;flex-wrap:wrap}
+  .tab{padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tree-ns{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .ns-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+  .dep{padding:9px 14px 9px 40px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px}
+  /* grouping (orb) section */
+  .orbwrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 6px 2px}
+  .orb{width:100%;height:400px;display:block}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;padding:6px 12px 12px;color:var(--muted);font-size:12px}
+  .legend .lg{display:flex;align-items:center;gap:7px}
+  .legend .lgdot{width:22px;height:14px;border-radius:8px;border:1.5px solid}
+  .detail{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:6px 8px 8px;font-size:12.5px;display:none}
+  .detail.show{display:block}
+  .wlline{display:flex;align-items:center;gap:8px;padding:3px 0}
+  .wlline .bar{height:7px;border-radius:4px;background:#eef1f4;flex:1;overflow:hidden}
+  .wlline .bar>i{display:block;height:100%}
+  .focusable{cursor:pointer}
+  #tip{position:fixed;pointer-events:none;background:#0f2436;color:#fff;font-size:12px;padding:6px 9px;border-radius:7px;opacity:0;transition:opacity .08s;z-index:99;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  /* wide recommendation rows */
+  .recowide{display:flex;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;position:relative;overflow:hidden;flex-wrap:wrap}
+  .recowide .wl{min-width:196px}
+  .recowide .wl b{font-size:14px}
+  .seg2{display:flex;flex-direction:column;gap:1px;min-width:92px}
+  .seg2 .lb{font-size:11px;color:var(--muted)}
+  .down{color:var(--green);font-weight:600}
+  .fromto2{display:flex;align-items:center;gap:8px}
+  .nodechip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid;white-space:nowrap}
+  .ar{color:var(--faint)}
+  .acts{display:flex;gap:8px;margin-left:auto}
+  .checkwrap{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.6);z-index:2}
+  .recowide.applied .checkwrap{display:flex}
+  .checkwrap .ck{width:52px;height:52px;border-radius:50%;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;color:var(--green);font-size:28px;background:#fff}
+  .badgeflag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+  .overlay{position:fixed;inset:0;background:rgba(15,28,45,.5);display:none;align-items:center;justify-content:center;padding:24px;z-index:50}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow:auto;padding:22px 24px}
+  .modal.lg{max-width:840px}
+  .modal h3{margin:0;font-size:17px;font-weight:600}
+  .modal .x{margin-left:auto;border:none;background:none;font-size:20px;color:var(--faint);cursor:pointer;line-height:1}
+  .evidence{background:#f0f5fb;border:1px solid #dbe6f4;border-radius:var(--radius);padding:11px 13px;font-size:13px;color:#33475f;margin:12px 0}
+  .peer{border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-top:9px;display:flex;align-items:center;gap:12px;font-size:13px}
+  .whygraph{width:100%;height:380px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);display:block}
+  footer.note{color:var(--faint);font-size:12px;text-align:center;padding:14px}
+  .slider{display:flex;align-items:center;gap:12px;padding:6px 0}
+  .slider input[type=range]{flex:1}
+  .slider .wv{width:44px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+  .inline{display:flex;gap:8px;align-items:center}
+  .inline input[type=number]{width:78px}
+  /* toast + inline error */
+  #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#0f2436;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .15s;z-index:60}
+  #toast.show{opacity:1}
+  #err{background:var(--red-bg);border:1px solid var(--red-br);color:var(--red);padding:10px 14px;border-radius:8px;margin-bottom:12px;display:none;font-size:13px}
+  .danger{color:var(--red)}
+  pre.snippet{background:#0f2436;color:#e4e7eb;border-radius:8px;padding:12px 14px;font-size:12px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.45;white-space:pre;margin:0}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">KH</div>
+  <h1>Kube Huddle</h1>
+  <div class="env"><span class="dot"></span> read-only · never applies to the cluster</div>
+</div>
+
+<div class="modebar">
+  <span class="small muted">Group granularity</span>
+  <div class="seg" id="granseg">
+    <button class="seg-btn active" data-g="node" onclick="setGran('node')">By node</button>
+    <button class="seg-btn" data-g="zone" onclick="setGran('zone')">By zone / topology</button>
+  </div>
+  <span class="small muted" id="granhint" style="margin-left:auto">Detect low-latency islands at node granularity (recommended)</span>
+</div>
+
+<nav class="steps" id="steps">
+  <div class="step active" data-s="1"><span class="n">1</span> Connect cluster</div><span class="sep">›</span>
+  <div class="step" data-s="2"><span class="n">2</span> Select pods</div><span class="sep">›</span>
+  <div class="step" data-s="3"><span class="n">3</span> Sources &amp; run</div><span class="sep">›</span>
+  <div class="step" data-s="4"><span class="n">4</span> Results</div>
+</nav>
+
+<main id="main">
+  <div id="err"></div>
+
+  <!-- SCREEN 1 : clusters -->
+  <section class="screen show" id="s1">
+    <div class="between" style="margin-bottom:4px">
+      <h2 style="margin:0">Connect a Kubernetes cluster</h2>
+      <button class="btn primary sm" onclick="openM('m-cluster')">+ Add cluster</button>
+    </div>
+    <p class="sub">Pick a connected cluster, or add one. The tool runs outside your cluster and needs only read-only access.</p>
+    <div class="clgrid" id="clusters"></div>
+    <div class="hint" style="margin-top:18px"><span>ⓘ</span><span>Least-privilege: only <b>read</b> (list/get) on namespaces, deployments, pods, and nodes. Credentials are stored as a k8s Secret reference — never the raw kubeconfig/token.</span></div>
+  </section>
+
+  <!-- SCREEN 2 : select pods -->
+  <section class="screen" id="s2">
+    <h2>Select pods</h2>
+    <p class="sub">Choose which workloads to consider for network-call analysis. Unselected apps are excluded from the latency map. DaemonSets are auto-excluded (they already run on every node).</p>
+    <div class="between" style="margin-bottom:12px"><span class="pill gray" id="wlcount">0 selected</span>
+      <button class="btn ghost sm" onclick="toggleAll()">select all</button></div>
+    <div class="tree-ns" id="tree"></div>
+    <div class="row" style="justify-content:space-between;margin-top:18px">
+      <button class="btn" onclick="go(1)">← Back</button>
+      <button class="btn primary" onclick="go(3)">Continue →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3 : sources & run -->
+  <section class="screen" id="s3">
+    <h2>Data sources &amp; run</h2>
+    <p class="sub">Confirm the passive latency source, tune the smoothing, then run. Flow = <span class="small">POST /collections → POST /runs</span>; collection failure is non-fatal (data flagged stale).</p>
+    <div class="card" style="margin-bottom:16px">
+      <div class="between" style="margin-bottom:10px"><b>Interaction &amp; latency source</b><span class="small muted">agentless — reuses existing traffic</span></div>
+      <div class="grid2">
+        <div class="srccard on" data-src="hubble" onclick="pickSrc(this)"><div class="ic">CI</div><div><b>Cilium / Hubble</b><div class="small muted">default · eBPF flow latency</div></div></div>
+        <div class="srccard" data-src="istio" onclick="pickSrc(this)"><div class="ic">IS</div><div><b>Istio</b><div class="small muted">request-duration histograms</div></div></div>
+        <div class="srccard" data-src="otel" onclick="pickSrc(this)"><div class="ic">OT</div><div><b>OpenTelemetry</b><div class="small muted">span latencies</div></div></div>
+        <div class="srccard" data-src="prometheus" onclick="pickSrc(this)"><div class="ic">PR</div><div><b>Prometheus mesh</b><div class="small muted">histogram_quantile</div></div></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card">
+        <b>Run settings</b>
+        <div style="margin-top:12px"><label class="f">Observation window</label>
+          <select id="win"><option value="7d">7 days</option><option value="14d">14 days</option><option value="30d">30 days</option></select></div>
+        <div style="margin-top:10px"><label class="row small"><input type="checkbox" id="migck" checked> Evaluate replicate-vs-migrate what-if</label></div>
+        <div style="margin-top:8px"><label class="row small"><input type="checkbox" id="costck" checked> Cost estimate (OpenCost · static fallback)</label></div>
+        <div style="margin-top:8px"><label class="f">Cover mode</label>
+          <select id="covermode"><option value="exact">exact (small/medium graphs)</option><option value="greedy">greedy (large graphs)</option></select></div>
+      </div>
+      <div class="card">
+        <b>Latency smoothing</b>
+        <div class="small muted" style="margin:2px 0 8px">Exponential smoothing over each pair's latency series.</div>
+        <div class="slider"><span class="small" style="width:130px">α (weight of latest)</span><input type="range" id="alpha" min="0" max="100" value="50" oninput="document.getElementById('al').textContent=(this.value/100).toFixed(2)"><span class="wv" id="al">0.50</span></div>
+        <div style="margin-top:8px"><label class="f">i — moving-average window</label>
+          <div class="inline">
+            <input type="number" id="iwin" value="10" min="1">
+            <select id="iunit">
+              <option value="samples" selected>samples (data points)</option>
+              <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
+              <option value="days">days</option>
+            </select>
+          </div>
+          <div class="small muted" style="margin-top:4px">Natively a count of samples; a time unit is converted to samples using the collection step.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="between">
+      <div class="small muted">Analysis runs on the collected data for <b id="runclname">this cluster</b>.</div>
+      <button class="btn primary" id="runbtn" onclick="runFlow()">Collect &amp; detect groups ▶</button>
+    </div><div id="runsteps" style="display:none;margin-top:14px"></div></div>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="go(2)">← Back</button></div>
+  </section>
+
+  <!-- SCREEN 4 : results -->
+  <section class="screen" id="s4">
+    <div class="between" style="margin-bottom:6px">
+      <h2 style="margin:0">Detected latency groups</h2>
+      <div class="row"><span class="pill gray" id="grouppill">— groups</span><span class="pill blue" id="freshpill">fresh</span></div>
+    </div>
+
+    <div class="section" style="margin-bottom:26px">
+      <h3 class="sec">Node groupings</h3>
+      <p class="sub" id="orbsub" style="margin-bottom:10px">These are the detected <b>low-latency islands</b>. Each large orb is a group of nodes close together in the network — replicating a service into <b>any one node per island</b> is enough. Inside each island, every <b>mini-orb is a node</b>, sized by its <b>total traffic</b>; <b>click a node</b> to list the workloads running on it. (Node-level is the granularity replication decisions are made at.)</p>
+      <div class="orbwrap">
+        <svg id="orb" class="orb" viewBox="0 0 1160 400" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="legend">
+          <span class="lg"><span class="lgdot" style="background:rgba(120,170,225,.28);border-color:#5b9bd5"></span> island = node group</span>
+          <span class="lg"><span class="lgdot" style="background:rgba(120,170,225,.55);border-color:#2f6fbf;border-radius:50%;width:16px;height:16px"></span> mini-orb = node (size = total traffic)</span>
+          <span class="lg small">click a node to list its workloads · &ldquo;ratio&rdquo; = intra/inter latency, lower = cleaner island</span>
+        </div>
+        <div class="detail" id="orbDetail"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="between"><h3 class="sec">Recommendations</h3><span class="small muted" id="reccap"></span></div>
+      <p class="sub" style="margin-bottom:12px">Replicate-vs-migrate suggestions. <b>Apply</b> previews the move in the orb above; nothing is sent to the cluster — a migrate carries a suggested nodeAffinity snippet you apply yourself.</p>
+      <div id="recos"></div>
+    </div>
+
+    <div class="row" style="margin-top:8px"><button class="btn" onclick="go(3)">← Adjust &amp; re-run</button></div>
+  </section>
+</main>
+
+<div id="tip"></div>
+<div id="toast"></div>
+
+<footer class="note">Kube Huddle · reads /api/v1 · nothing is applied to any cluster.</footer>
+
+<!-- add-cluster modal -->
+<div class="overlay" id="m-cluster"><div class="modal">
+  <div class="row" style="margin-bottom:16px"><h3>Add Kubernetes cluster</h3><button class="x" onclick="close_('m-cluster')">×</button></div>
+  <label class="f">Cluster name</label><input id="cl-name" type="text" placeholder="prod-eng-services" style="margin-bottom:14px">
+  <label class="f">Authentication method</label>
+  <div class="tabs" id="authtabs">
+    <div class="tab active" data-a="kubeconfig" onclick="pickAuth('kubeconfig')">Kubeconfig</div>
+    <div class="tab" data-a="token" onclick="pickAuth('token')">SA token</div>
+    <div class="tab" data-a="client_cert" onclick="pickAuth('client_cert')">Client cert</div>
+    <div class="tab" data-a="basic" onclick="pickAuth('basic')">Basic auth</div>
+  </div>
+  <div id="auth-kubeconfig" class="authpane">
+    <div class="hint" style="margin-bottom:12px"><span>ⓘ</span><span>Most common for external tools. Reference an uploaded kubeconfig Secret.</span></div>
+    <label class="f">Context</label><input id="cl-ctx" type="text" placeholder="prod-eng-services" style="margin-bottom:12px">
+    <label class="f">Credential reference (k8s Secret name)</label><input id="cl-ref-kc" type="text" placeholder="kubeconfig-prod">
+  </div>
+  <div id="auth-token" class="authpane" style="display:none">
+    <label class="f">API server URL</label><input id="cl-url-tok" type="url" placeholder="https://10.20.0.1:6443" style="margin-bottom:12px">
+    <label class="f">Credential reference (Secret holding the bearer token)</label><input id="cl-ref-tok" type="text" placeholder="sa-token-prod">
+  </div>
+  <div id="auth-client_cert" class="authpane" style="display:none">
+    <label class="f">API server URL</label><input id="cl-url-crt" type="url" placeholder="https://10.20.0.1:6443" style="margin-bottom:12px">
+    <label class="f">Credential reference (Secret holding cert + key)</label><input id="cl-ref-crt" type="text" placeholder="client-cert-prod">
+  </div>
+  <div id="auth-basic" class="authpane" style="display:none">
+    <label class="f">API server URL</label><input id="cl-url-bsc" type="url" placeholder="https://127.0.0.1:6443" style="margin-bottom:12px">
+    <label class="f">Credential reference (Secret holding user/pass)</label><input id="cl-ref-bsc" type="text" placeholder="basic-auth-prod">
+    <div class="hint" style="margin-top:12px"><span>⚠</span><span>Legacy — most clusters disable basic auth. Prefer kubeconfig or a token.</span></div>
+  </div>
+  <div class="hint" style="margin-top:14px"><span>🔒</span><span>Credentials are stored as a k8s Secret reference only — never in plain text.</span></div>
+  <div class="row" style="gap:10px;margin-top:20px">
+    <button class="btn" onclick="testConnection()">🔌 Test connection</button>
+    <button class="btn" style="margin-left:auto" onclick="saveCluster(false)">Save cluster</button>
+    <button class="btn primary" onclick="saveCluster(true)">Save &amp; continue</button>
+  </div>
+</div></div>
+
+<!-- WHY modal -->
+<div class="overlay" id="whyModal"><div class="modal lg">
+  <div class="row" style="align-items:flex-start"><h3 id="whyTitle">Why this recommendation</h3><button class="x" onclick="close_('whyModal')">×</button></div>
+  <div class="evidence" id="whyEvidence"></div>
+  <svg id="whyGraph" class="whygraph" viewBox="0 0 780 380" preserveAspectRatio="xMidYMid meet"></svg>
+  <div id="whyPeers" style="margin-top:14px"></div>
+  <div id="whySnippet" style="margin-top:14px"></div>
+</div></div>
+
+<script>
+/* =========================== API + shell helpers =========================== */
+const API = (window.KUBEHUDDLE_API || '/api/v1');
+const SVGNS = 'http://www.w3.org/2000/svg';
+async function api(path, opts){
+  const r = await fetch(API + path, Object.assign({headers:{'Content-Type':'application/json'}}, opts||{}));
+  if(!r.ok){ const t = await r.text(); throw new Error(r.status + ' ' + t); }
+  const ct = r.headers.get('content-type')||''; return ct.includes('json') ? r.json() : r.text();
+}
+function showErr(m){ const e=document.getElementById('err'); e.textContent=m; e.style.display='block'; setTimeout(()=>e.style.display='none', 6000); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+function openM(id){ document.getElementById(id).classList.add('show'); }
+function close_(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
+
+/* Stepper nav */
+function go(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  document.getElementById('s'+n).classList.add('show');
+  document.getElementById('main').classList.toggle('wide', n===4);
+  document.querySelectorAll('.step').forEach(st=>{const s=+st.dataset.s;st.classList.toggle('active',s===n);st.classList.toggle('done',s<n);});
+  window.scrollTo(0,0);
+  if(n===4 && state.view) setTimeout(()=>drawOrb('orb', state.view), 20);
+}
+document.querySelectorAll('.step').forEach(st=>st.addEventListener('click',()=>go(+st.dataset.s)));
+function setGran(g){
+  state.gran=g;
+  document.querySelectorAll('#granseg .seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===g));
+  document.getElementById('granhint').textContent = g==='node'
+    ? 'Detect low-latency islands at node granularity (recommended)'
+    : 'Collapse nodes by a topology label (zone/rack) before grouping';
+}
+
+/* Stable color palette (indexed by group_index % COLORS.length) */
+const COLORS = [
+  {island:'rgba(160,196,74,0.20)', ring:'#8fb43f', node:'rgba(160,196,74,0.40)', nodeRing:'#7ea23a', wl:'rgba(120,158,40,0.75)', wlring:'#6f8f28', chipBg:'#eef5da', chipBr:'#8fb43f', chipTx:'#5c7a1e'},
+  {island:'rgba(120,170,225,0.20)', ring:'#5b9bd5', node:'rgba(120,170,225,0.40)', nodeRing:'#3f86c8', wl:'rgba(52,120,205,0.75)', wlring:'#2f6fbf', chipBg:'#e7f0fb', chipBr:'#5b9bd5', chipTx:'#2f6fbf'},
+  {island:'rgba(224,140,140,0.22)', ring:'#e07a7a', node:'rgba(224,140,140,0.42)', nodeRing:'#cf6a6a', wl:'rgba(198,78,78,0.72)', wlring:'#b64b4b', chipBg:'#fbebeb', chipBr:'#e07a7a', chipTx:'#b64b4b'},
+  {island:'rgba(150,120,205,0.22)', ring:'#8f70c8', node:'rgba(150,120,205,0.40)', nodeRing:'#7a58b6', wl:'rgba(110,80,180,0.75)', wlring:'#5b46c4', chipBg:'#eee7fb', chipBr:'#8f70c8', chipTx:'#5b46c4'},
+  {island:'rgba(220,180,80,0.22)', ring:'#c9a13d', node:'rgba(220,180,80,0.40)', nodeRing:'#a88220', wl:'rgba(180,140,45,0.75)', wlring:'#8a5a06', chipBg:'#fbf1dd', chipBr:'#ecd8a8', chipTx:'#8a5a06'},
+];
+function colorOf(idx){ return COLORS[(idx>>>0) % COLORS.length]; }
+
+/* =========================== global state =========================== */
+const state = {
+  clusters: [],
+  clusterId: null,
+  clusterName: null,
+  runId: null,
+  src: 'hubble',
+  gran: 'node',
+  groups: [],           // raw LatencyGroupDTO[]
+  recs: [],             // raw LatencyRecommendationDTO[]
+  view: null,           // orb model derived from groups (mutable for APPLY/DROP)
+  applied: new Set(),
+  openNode: null,
+};
+
+/* =========================== SCREEN 1 : clusters =========================== */
+const K8S = '<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.6"><path d="M12 2l8.5 4v8L12 22 3.5 14V6z"/><circle cx="12" cy="12" r="3"/></svg>';
+const AUTHLBL = {kubeconfig:'kubeconfig', token:'SA token', client_cert:'client cert', basic:'basic auth'};
+
+async function loadClusters(){
+  let clusters = [];
+  try{ clusters = (await api('/clusters')).clusters || []; }
+  catch(e){ showErr('API unreachable at '+API+' — '+e.message); return; }
+  state.clusters = clusters;
+  const grid = document.getElementById('clusters'); grid.innerHTML = '';
+  clusters.forEach(c=>{
+    const isSel = String(state.clusterId) === String(c.id);
+    const auth = AUTHLBL[c.auth_method] || (c.auth_method || 'n/a');
+    const card = document.createElement('div');
+    card.className = 'clcard';
+    card.innerHTML =
+      '<div class="k8s">'+K8S+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div class="cn">'+c.name+'</div>'+
+        '<div class="small muted">'+(c.api_url||'—')+' · '+auth+'</div>'+
+        '<div style="margin-top:6px;display:flex;gap:6px;align-items:center">'+
+          '<span class="pill '+(isSel?'blue':'gray')+'">'+(isSel?'selected':(c.status||'added'))+'</span>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">'+
+          '<button class="btn sm primary" data-sel="'+c.id+'" data-name="'+c.name+'">Select →</button>'+
+          '<button class="btn sm" data-test="'+c.id+'">Test</button>'+
+          '<button class="btn ghost sm danger" data-del="'+c.id+'" style="margin-left:auto">Remove</button>'+
+        '</div>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+  // "+ Add cluster" dashed tile at the end
+  const add = document.createElement('div');
+  add.className = 'clcard';
+  add.style.cssText = 'border-style:dashed;justify-content:center;color:var(--muted);cursor:pointer;min-height:96px';
+  add.textContent = '+ Add cluster';
+  add.onclick = ()=>openM('m-cluster');
+  grid.appendChild(add);
+  grid.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>selectCluster(b.dataset.sel, b.dataset.name));
+  grid.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>testCluster(b.dataset.test));
+  grid.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteCluster(b.dataset.del));
+}
+async function selectCluster(id, name){
+  state.clusterId = id; state.clusterName = name;
+  document.getElementById('runclname').textContent = name;
+  await loadWorkloads();
+  go(2);
+}
+function probeMsg(r){
+  return r.reachable
+    ? '✓ Reachable' + (r.server_version?(' · '+r.server_version):'') + (r.detail?(' — '+r.detail):'')
+    : '✗ Unreachable: ' + (r.detail||'unknown error');
+}
+async function testCluster(id){
+  toast('Testing connection…');
+  try{ const r = await api('/clusters/'+id+':test', {method:'POST'}); toast(probeMsg(r)); loadClusters(); }
+  catch(e){ toast('Test failed: '+e.message); }
+}
+async function testConnection(){
+  const method = document.querySelector('#authtabs .tab.active').dataset.a;
+  const urlId = {token:'cl-url-tok', client_cert:'cl-url-crt', basic:'cl-url-bsc'}[method];
+  const refId = {kubeconfig:'cl-ref-kc', token:'cl-ref-tok', client_cert:'cl-ref-crt', basic:'cl-ref-bsc'}[method];
+  const apiUrl = urlId ? (document.getElementById(urlId).value.trim() || null) : null;
+  const credRef = document.getElementById(refId).value.trim() || null;
+  if(!apiUrl && !credRef){ toast('Enter an API URL and/or a credential reference first.'); return; }
+  toast('Testing connection…');
+  try{
+    const r = await api('/clusters:test', {method:'POST', body: JSON.stringify({auth_method:method, api_url:apiUrl, credential_ref:credRef})});
+    toast(probeMsg(r));
+  } catch(e){ toast('Test failed: '+e.message); }
+}
+async function deleteCluster(id){
+  if(!confirm('Remove this cluster from the registry? (This does not touch the target cluster.)')) return;
+  try{ await api('/clusters/'+id, {method:'DELETE'}); toast('Cluster removed'); await loadClusters(); }
+  catch(e){ toast('Remove failed: '+e.message); }
+}
+async function saveCluster(cont){
+  const name = document.getElementById('cl-name').value.trim();
+  if(!name){ toast('Cluster name is required'); return; }
+  const method = document.querySelector('#authtabs .tab.active').dataset.a;
+  const urlId = {token:'cl-url-tok', client_cert:'cl-url-crt', basic:'cl-url-bsc'}[method];
+  const refId = {kubeconfig:'cl-ref-kc', token:'cl-ref-tok', client_cert:'cl-ref-crt', basic:'cl-ref-bsc'}[method];
+  const body = {
+    name, auth_method: method,
+    api_url: urlId ? (document.getElementById(urlId).value.trim() || null) : null,
+    credential_ref: document.getElementById(refId).value.trim() || null,
+  };
+  try{
+    const created = await api('/clusters', {method:'POST', body: JSON.stringify(body)});
+    toast('Cluster "'+name+'" added');
+    close_('m-cluster');
+    document.getElementById('cl-name').value = '';
+    await loadClusters();
+    if(cont) selectCluster(created.id, name);
+  } catch(e){ toast('Add failed: '+e.message); }
+}
+function pickAuth(a){
+  document.querySelectorAll('#authtabs .tab').forEach(t=>t.classList.toggle('active', t.dataset.a===a));
+  ['kubeconfig','token','client_cert','basic'].forEach(k=>{
+    document.getElementById('auth-'+k).style.display = k===a ? 'block' : 'none';
+  });
+}
+
+/* =========================== SCREEN 2 : select pods =========================== */
+async function loadWorkloads(){
+  const t = document.getElementById('tree'); t.innerHTML = ''; let total = 0;
+  try{
+    const ns = (await api('/clusters/'+state.clusterId+'/namespaces')).namespaces || [];
+    for(const n of ns){
+      const wls = (await api('/clusters/'+state.clusterId+'/namespaces/'+encodeURIComponent(n.name)+'/workloads')).workloads || [];
+      if(!wls.length) continue;
+      total += wls.length;
+      const row = document.createElement('div'); row.className = 'ns-row';
+      row.innerHTML = '<input type="checkbox" class="ns-check" checked onclick="toggleNs(\''+n.name+'\', this.checked)">'
+        + '<b>'+n.name+'</b><span class="pill gray small">'+wls.length+'</span>';
+      t.appendChild(row);
+      wls.forEach(w=>{
+        const isDs = w.kind === 'DaemonSet';
+        const d = document.createElement('div'); d.className = 'dep';
+        d.innerHTML = isDs
+          ? '<input type="checkbox" disabled><span class="muted">'+w.name+'</span><span class="small muted">'+w.kind+' · auto-excluded (runs on all nodes)</span>'
+          : '<input type="checkbox" class="wl-check" data-uid="'+w.workload_uid+'" data-ns="'+n.name+'" checked onchange="updateSelCount()"><span>'+w.name+'</span><span class="small muted">'+w.kind+'</span>';
+        t.appendChild(d);
+      });
+    }
+    if(total === 0){
+      t.innerHTML = '<div class="dep muted">No collected workloads yet — run <span class="small">collector discover</span> against this cluster first, or seed the fig2/sparse_migration fixture with <span class="small">kubehuddle-engine seed</span>.</div>';
+    }
+  } catch(e){ showErr(e.message); }
+  updateSelCount();
+}
+function toggleNs(ns, on){ document.querySelectorAll('.wl-check[data-ns="'+ns+'"]').forEach(c=>c.checked=on); updateSelCount(); }
+function toggleAll(){
+  const boxes = document.querySelectorAll('.wl-check');
+  const anyOff = [...boxes].some(b=>!b.checked);
+  boxes.forEach(b=>b.checked = anyOff);
+  updateSelCount();
+}
+function selectedUids(){ return [...document.querySelectorAll('.wl-check:checked')].map(c=>c.dataset.uid).filter(Boolean); }
+function updateSelCount(){
+  const sel = selectedUids().length, all = document.querySelectorAll('.wl-check').length;
+  const el = document.getElementById('wlcount');
+  if(el) el.textContent = sel + ' of ' + all + ' workloads selected';
+}
+
+/* =========================== SCREEN 3 : sources + run =========================== */
+function pickSrc(el){
+  document.querySelectorAll('.srccard').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  state.src = el.dataset.src;
+}
+async function runFlow(){
+  const box = document.getElementById('runsteps'); box.style.display='block'; box.innerHTML='';
+  document.getElementById('runbtn').disabled = true;
+  const step = (t)=>{ const d=document.createElement('div'); d.className='rstep'; d.innerHTML='<span class="spin"></span> '+t; box.appendChild(d); return d; };
+  const done = (d)=>{ d.innerHTML = d.innerHTML.replace(/<span class="spin"><\/span>/, '<span style="color:var(--green)">✓</span>'); };
+  const skip = (d, msg)=>{ d.innerHTML = d.innerHTML.replace(/<span class="spin"><\/span>/, '<span style="color:var(--amber)">!</span>') + ' — '+msg; };
+  try{
+    const win = document.getElementById('win').value;
+    // 1) collection (non-fatal)
+    const d1 = step('Collecting (interactions + latency samples) from '+state.src+'…');
+    try{ await api('/collections', {method:'POST', body: JSON.stringify({cluster: state.clusterName, window: win, interaction_source: state.src})}); done(d1); }
+    catch(e){ skip(d1, 'collection unavailable — using stored data (stale flag will be set)'); }
+    // 2) build run config
+    const alpha = +document.getElementById('alpha').value/100;
+    const iwin = +document.getElementById('iwin').value;
+    const iunit = document.getElementById('iunit').value;
+    const migration = document.getElementById('migck').checked;
+    const cost = document.getElementById('costck').checked;
+    const covermode = document.getElementById('covermode').value;
+    const config = {
+      alpha, i_window: iwin, i_unit: iunit,
+      cover_mode: covermode,
+      enable_migration: migration,
+      cost_enabled: cost,
+      group_by: state.gran === 'zone' ? 'zone' : 'node',
+    };
+    // 3) run
+    const d2 = step('Smoothing → weighing → grouping → what-if…');
+    const body = {cluster_id: +state.clusterId, config, ttl: '24h', run_type: 'latency'};
+    const res = await api('/runs', {method:'POST', body: JSON.stringify(body)});
+    state.runId = res.run_id;
+    done(d2);
+    // 4) fetch groups + recs
+    const d3 = step('Loading results…');
+    await loadResults();
+    done(d3);
+    go(4);
+  } catch(e){ showErr(e.message); }
+  finally{ document.getElementById('runbtn').disabled = false; }
+}
+
+/* =========================== SCREEN 4 : results =========================== */
+async function loadResults(){
+  const [g, r, runStatus] = await Promise.all([
+    api('/runs/'+state.runId+'/groups'),
+    api('/runs/'+state.runId+'/recommendations'),
+    api('/runs/'+state.runId).catch(()=>({stale:false})),
+  ]);
+  state.groups = g.groups || [];
+  state.recs = r.recommendations || [];
+  document.getElementById('grouppill').textContent = state.groups.length + ' groups';
+  const fresh = document.getElementById('freshpill');
+  fresh.textContent = runStatus && runStatus.stale ? 'stale data' : 'fresh';
+  fresh.className = runStatus && runStatus.stale ? 'pill amber' : 'pill blue';
+  state.applied = new Set(); state.openNode = null;
+  state.view = buildOrbView(state.groups);
+  renderRecos(); drawOrb('orb', state.view); updateCaption();
+}
+function updateCaption(){
+  const n = state.applied.size;
+  document.getElementById('reccap').textContent = n ? (n + ' applied (previewed in the orb)') : '';
+  document.getElementById('orbsub').innerHTML = n
+    ? 'Showing the grouping <b>with '+n+' applied recommendation'+(n>1?'s':'')+'</b> (preview) — the moved pod\'s node counts + traffic update below. Each large orb is a node group; each <b>mini-orb is a node</b> sized by total traffic; click a node to list its workloads. Nothing is sent to the cluster.'
+    : 'These are the detected <b>low-latency islands</b>. Each large orb is a group of nodes close together in the network — replicating a service into <b>any one node per island</b> is enough. Inside each island, every <b>mini-orb is a node</b>, sized by its <b>total traffic</b>; <b>click a node</b> to list the workloads running on it. (Node-level is the granularity replication decisions are made at.)';
+}
+
+/* Convert LatencyGroupDTO[] into the orb's shape:
+     [{index, color, ratio, nodes:[{name, workloads:[{name, size, uid, kind, ns}]}]}]
+   Groups workloads by node_name; falls back to node_names[] to include empty nodes so
+   the island still renders even when no workload is placed. */
+function buildOrbView(groups){
+  return groups.map((g, gi)=>{
+    const byNode = {};
+    (g.node_names || []).forEach(n => { byNode[n] = {name:n, workloads:[]}; });
+    (g.workloads || []).forEach(w=>{
+      const key = w.node_name || '(unplaced)';
+      if(!byNode[key]) byNode[key] = {name:key, workloads:[]};
+      byNode[key].workloads.push({
+        name: w.name || w.workload_uid, uid: w.workload_uid,
+        kind: w.kind, ns: w.namespace,
+        size: (w.size && w.size > 0) ? w.size : 1,
+      });
+    });
+    return {
+      index: g.group_index != null ? g.group_index : gi,
+      color: g.group_index != null ? g.group_index : gi,
+      ratio: g.latency_ratio || 0,
+      label: g.label,
+      nodes: Object.values(byNode),
+    };
+  });
+}
+
+function chip(name, ci){ const c = colorOf(ci); return '<span class="nodechip" style="background:'+c.chipBg+';border-color:'+c.chipBr+';color:'+c.chipTx+'">'+name+'</span>'; }
+function money(r){ return (r.cost_saving && r.cost_saving.amount!=null) ? ((r.cost_saving.currency||'$')+r.cost_saving.amount.toFixed(2)) : null; }
+function firstToNode(r){
+  if(!r.to || r.to.scope == null) return '';
+  // to.scope may be a comma-separated list of nodes (target island); use the first one.
+  return String(r.to.scope).split(',')[0].trim();
+}
+function renderRecos(){
+  const box = document.getElementById('recos'); box.innerHTML = '';
+  if(!state.recs.length){
+    box.innerHTML = '<div class="card small muted">No recommendations for this run.</div>';
+    return;
+  }
+  state.recs.forEach(r=>{
+    const applied = state.applied.has(r.recommendation_id);
+    const fromNode = r.from ? r.from.scope : '—';
+    const toNode = firstToNode(r) || (r.to ? r.to.scope : '—');
+    const fromGi = r.from ? r.from.group_index : null;
+    const toGi = r.to && r.to.group_index != null ? r.to.group_index : null;
+    const isMigrate = r.action === 'migrate';
+    const cost = money(r);
+    const delta = r.latency_delta_ms == null ? '' : (r.latency_delta_ms <= 0
+      ? Math.abs(r.latency_delta_ms).toFixed(1) + 'ms ↓'
+      : r.latency_delta_ms.toFixed(1) + 'ms ↑');
+    const conf = r.confidence || 'medium';
+    const confPill = conf==='high' ? 'pill green' : conf==='medium' ? 'pill amber' : 'pill gray';
+    const el = document.createElement('div');
+    el.className = 'recowide' + (applied?' applied':'');
+    el.id = 'row-'+r.recommendation_id;
+    el.innerHTML =
+      '<div class="checkwrap"><div class="ck">✓</div></div>'+
+      '<div class="wl"><b>'+(r.workload.name||r.workload_uid||'workload')+'</b><div class="small muted">'+(r.workload.kind||'')+' · '+(r.workload.namespace||'')+'</div></div>'+
+      '<span class="pill '+(isMigrate?'amber':'blue')+'">'+r.action+'</span>'+
+      '<div class="fromto2">'+chip(fromNode, fromGi!=null?fromGi:0)+'<span class="ar">→</span>'+chip(toNode, toGi!=null?toGi:0)+'</div>'+
+      (cost ? '<div class="seg2"><span class="lb">Cost saving</span><span class="down">'+cost+'/'+(r.cost_saving.period||'mo')+' ↓</span></div>' : '')+
+      (delta ? '<div class="seg2"><span class="lb">Latency</span><span class="'+(r.latency_delta_ms<=0?'down':'')+'">'+delta+'</span></div>' : '')+
+      '<div class="seg2"><span class="lb">Confidence</span><span class="badgeflag '+confPill+'">'+conf+'</span></div>'+
+      (r.suggested_mechanism ? '<div class="seg2"><span class="lb">Suggested</span><span class="small">'+r.suggested_mechanism+'</span></div>' : '')+
+      '<div class="acts">'+
+        '<button class="btn ghost sm" onclick="openWhy(\''+r.recommendation_id+'\')">WHY?</button>'+
+        '<button class="btn danger sm" onclick="dropRec(\''+r.recommendation_id+'\')">DROP</button>'+
+        '<button class="btn primary sm" onclick="applyRec(\''+r.recommendation_id+'\')">APPLY</button>'+
+      '</div>';
+    box.appendChild(el);
+  });
+}
+function findRec(id){ return state.recs.find(r=>String(r.recommendation_id)===String(id)); }
+function findNode(view, gi, nodeName){ const g = view.find(x=>x.index===gi); return g && g.nodes.find(n=>n.name===nodeName); }
+function applyRec(id){
+  const r = findRec(id); if(!r || state.applied.has(id)) return;
+  if(r.action === 'migrate' && r.from && r.to){
+    const fn = findNode(state.view, r.from.group_index, r.from.scope);
+    const toName = firstToNode(r);
+    const tn = findNode(state.view, r.to.group_index, toName);
+    if(fn && tn){
+      const wi = fn.workloads.findIndex(w => String(w.uid) === String(r.workload_uid));
+      if(wi >= 0){ const w = fn.workloads.splice(wi, 1)[0]; tn.workloads.push(w); }
+    }
+  }
+  state.applied.add(id);
+  renderRecos(); drawOrb('orb', state.view); updateCaption();
+}
+function dropRec(id){
+  const r = findRec(id);
+  if(state.applied.has(id) && r && r.action === 'migrate' && r.from && r.to){
+    const fn = findNode(state.view, r.from.group_index, r.from.scope);
+    const toName = firstToNode(r);
+    const tn = findNode(state.view, r.to.group_index, toName);
+    if(fn && tn){
+      const wi = tn.workloads.findIndex(w => String(w.uid) === String(r.workload_uid));
+      if(wi >= 0){ const w = tn.workloads.splice(wi, 1)[0]; fn.workloads.push(w); }
+    }
+    state.applied.delete(id); drawOrb('orb', state.view); updateCaption();
+  }
+  const row = document.getElementById('row-'+id); if(row) row.style.display = 'none';
+}
+
+/* =========================== Orb (self-contained SVG) =========================== */
+function packCircles(children, opt){
+  const pad=opt.pad||3, iters=opt.iters||320, grav=opt.gravity||0.05, seed=opt.seed||16, n=children.length;
+  children.forEach((c,i)=>{ const a = n>1 ? i/n*2*Math.PI : 0; c.x = Math.cos(a)*seed; c.y = Math.sin(a)*seed; });
+  for(let it=0; it<iters; it++){
+    children.forEach(c=>{ c.x += (0 - c.x)*grav; c.y += (0 - c.y)*grav; });
+    for(let i=0; i<n; i++) for(let j=i+1; j<n; j++){
+      const a = children[i], b = children[j];
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
+      const min = a.r + b.r + pad;
+      if(d < min){ const p = (min - d)/2; dx/=d; dy/=d; a.x -= dx*p; a.y -= dy*p; b.x += dx*p; b.y += dy*p; }
+    }
+  }
+  let R = opt.min || 10;
+  children.forEach(c=>{ R = Math.max(R, Math.hypot(c.x, c.y) + c.r); });
+  return R + (opt.rpad || 6);
+}
+const mk = (t, a)=>{ const e = document.createElementNS(SVGNS, t); for(const k in a) e.setAttribute(k, a[k]); return e; };
+const txt = (x, y, s, o)=>{ const e = mk('text', Object.assign({x, y, 'text-anchor':'middle'}, o||{})); e.textContent = s; return e; };
+function nodeAggRadius(total){ return Math.max(26, 6.5 * Math.sqrt(total)); }
+const tip = document.getElementById('tip');
+function hookTip(el, html){
+  el.addEventListener('mousemove', e=>{ tip.innerHTML = html; tip.style.opacity = 1; tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; });
+  el.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+}
+function drawOrb(svgId, groups){
+  const svg = document.getElementById(svgId); if(!svg) return;
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  if(!groups || !groups.length){
+    svg.appendChild(txt(580, 200, 'No groups detected — try seeding a fixture and re-running.', {fill:'#8a93a3','font-size':13}));
+    return;
+  }
+  const VB = {w:1160, h:400};
+  groups.forEach(g=>g.nodes.forEach(nd=>{ nd.total = nd.workloads.reduce((s,w)=>s + (w.size||0), 0); nd.R = nodeAggRadius(nd.total); }));
+  groups.forEach(g=>{
+    const items = g.nodes.map(nd=>({ref:nd, r:nd.R}));
+    g.R = packCircles(items, {pad:12, seed:34, min:52, rpad:14});
+    items.forEach(it=>{ it.ref.gx = it.x; it.ref.gy = it.y; });
+  });
+  const gap = 48; let x = 0;
+  groups.forEach(g=>{ g.cx = x + g.R; g.cy = 0; x += 2*g.R + gap; });
+  const totalW = x - gap; let maxR = 0; groups.forEach(g=> maxR = Math.max(maxR, g.R));
+  const mTop = 30, mBot = 14, mSide = 16;
+  const scale = Math.min((VB.w - 2*mSide)/(totalW||1), (VB.h - mTop - mBot)/(2*maxR||1), 1.5);
+  const offX = mSide + ((VB.w - 2*mSide) - totalW*scale)/2;
+  const offY = mTop + maxR*scale;
+  const TX = (v)=> v*scale + offX;
+  const TY = (v)=> v*scale + offY;
+  const TR = (v)=> v*scale;
+  groups.forEach((g, gi)=>{
+    const c = colorOf(g.color);
+    const Gx = TX(g.cx), Gy = TY(g.cy), R = TR(g.R);
+    svg.appendChild(mk('circle', {cx:Gx, cy:Gy, r:R, fill:c.island, stroke:c.ring, 'stroke-width':1.5}));
+    svg.appendChild(txt(Gx, Gy - R - 13, g.label || ('Island ' + (gi+1)), {'font-size':12.5, fill:c.chipTx, 'font-weight':700}));
+    svg.appendChild(txt(Gx, Gy - R + 1, 'ratio ' + (g.ratio||0).toFixed(2), {'font-size':10, fill:'#5b6b7d'}));
+    g.nodes.forEach(nd=>{
+      const nx = TX(g.cx + nd.gx), ny = TY(g.cy + nd.gy), nr = TR(nd.R);
+      const ci = mk('circle', {cx:nx, cy:ny, r:nr, fill:c.node, stroke:c.nodeRing, 'stroke-width':1.3, class:'focusable'});
+      ci.addEventListener('click', ()=> showNodeDetail(g.index, nd.name));
+      hookTip(ci, '<b>'+nd.name+'</b> · '+nd.workloads.length+' pods · '+Math.round(nd.total)+' calls/hr — click to list');
+      svg.appendChild(ci);
+      svg.appendChild(txt(nx, ny - nr - 3, nd.name, {'font-size':10.5, fill:c.nodeRing, 'font-weight':600, 'pointer-events':'none'}));
+      svg.appendChild(txt(nx, ny - 1, nd.workloads.length + ' pods', {'font-size':Math.min(14, nr/2.1), fill:'#12203a', 'font-weight':700, 'pointer-events':'none'}));
+      svg.appendChild(txt(nx, ny + Math.min(15, nr/2.1) + 3, Math.round(nd.total) + ' c/hr', {'font-size':9.5, fill:'#5b6b7d', 'pointer-events':'none'}));
+    });
+  });
+  if(state.openNode){
+    const g = groups.find(x=>x.index===state.openNode.gi);
+    const nd = g && g.nodes.find(n=>n.name===state.openNode.name);
+    if(nd) showNodeDetail(state.openNode.gi, nd.name); else closeDetail();
+  }
+}
+function showNodeDetail(gi, nodeName){
+  const g = state.view.find(x=>x.index===gi); const nd = g && g.nodes.find(n=>n.name===nodeName);
+  if(!nd) return;
+  state.openNode = {gi, name:nodeName};
+  const box = document.getElementById('orbDetail'); const c = colorOf(g.color);
+  if(!nd.workloads.length){
+    box.innerHTML = '<div class="between"><b>'+nd.name+'</b><button class="btn ghost sm" onclick="closeDetail()">close</button></div><div class="small muted">No workloads on this node.</div>';
+    box.classList.add('show'); return;
+  }
+  const max = Math.max.apply(null, nd.workloads.map(w=>w.size || 0)) || 1;
+  const rows = nd.workloads.slice().sort((a,b)=>(b.size||0) - (a.size||0)).map(w=>
+    '<div class="wlline"><span style="width:170px">'+w.name+'</span><div class="bar"><i style="width:'+Math.round((w.size||0)/max*100)+'%;background:'+c.chipBr+'"></i></div><span style="width:66px;text-align:right">'+Math.round(w.size||0)+' c/hr</span></div>').join('');
+  const total = nd.workloads.reduce((s,w)=>s+(w.size||0),0);
+  box.innerHTML = '<div class="between"><b>'+nd.name+'</b><button class="btn ghost sm" onclick="closeDetail()">close</button></div>'
+    + '<div class="small muted" style="margin-bottom:4px">Group '+g.index+' · '+nd.workloads.length+' workloads · '+Math.round(total)+' calls/hr</div>' + rows;
+  box.classList.add('show');
+}
+function closeDetail(){ state.openNode = null; document.getElementById('orbDetail').classList.remove('show'); }
+
+/* =========================== WHY force-graph (self-contained) =========================== */
+function drawWhy(subgraph){
+  const svg = document.getElementById('whyGraph');
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const nodes = (subgraph.nodes || []).map(n => ({id:n.id, group:n.group_index != null ? n.group_index : 0, r:15}));
+  const byId = {}; nodes.forEach(n=> byId[n.id] = n);
+  const links = (subgraph.edges || []).map(e => ({s: byId[e.a], t: byId[e.b], lat:+e.latency_ms || 0, kind:e.kind}));
+  if(!nodes.length){
+    svg.appendChild(txt(390, 190, 'No subgraph — this recommendation has no interacting peers with placement data.', {'font-size':12.5, fill:'#8a93a3'}));
+    return;
+  }
+  const W = 780, H = 380;
+  nodes.forEach((n, i)=>{ const a = i/nodes.length * 2 * Math.PI; n.x = W/2 + Math.cos(a)*160; n.y = H/2 + Math.sin(a)*120; });
+  for(let it=0; it<420; it++){
+    nodes.forEach(a=>{ a.x += (W/2 - a.x)*0.008; a.y += (H/2 - a.y)*0.008; });
+    for(let i=0; i<nodes.length; i++) for(let j=i+1; j<nodes.length; j++){
+      const a = nodes[i], b = nodes[j];
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
+      const rep = 5400 / (d*d);
+      dx/=d; dy/=d; a.x -= dx*rep; a.y -= dy*rep; b.x += dx*rep; b.y += dy*rep;
+    }
+    links.forEach(l=>{
+      if(!l.s || !l.t) return;
+      let dx = l.t.x - l.s.x, dy = l.t.y - l.s.y, d = Math.hypot(dx, dy) || 0.01;
+      const k = (d - 140) * 0.02; dx/=d; dy/=d;
+      l.s.x += dx*k; l.s.y += dy*k; l.t.x -= dx*k; l.t.y -= dy*k;
+    });
+    nodes.forEach(a=>{ a.x = Math.max(a.r + 42, Math.min(W - a.r - 42, a.x)); a.y = Math.max(a.r + 16, Math.min(H - a.r - 24, a.y)); });
+  }
+  // Edges (external = red dashed = the latency barrier)
+  links.forEach(l=>{
+    if(!l.s || !l.t) return;
+    const isExt = l.kind === 'external';
+    svg.appendChild(mk('line', {x1:l.s.x, y1:l.s.y, x2:l.t.x, y2:l.t.y,
+      stroke: isExt ? '#b02a2a' : '#c3ccd6', 'stroke-width': isExt ? 2 : 1.2,
+      'stroke-dasharray': isExt ? '5 4' : ''}));
+    const lb = mk('text', {x:(l.s.x + l.t.x)/2, y:(l.s.y + l.t.y)/2 - 4, 'text-anchor':'middle', 'font-size':10, fill: isExt ? '#b02a2a' : '#8a93a3'});
+    lb.textContent = l.lat.toFixed(1) + 'ms'; svg.appendChild(lb);
+  });
+  // Nodes
+  nodes.forEach(n=>{
+    const c = colorOf(n.group);
+    svg.appendChild(mk('circle', {cx:n.x, cy:n.y, r:n.r, fill:c.wl, stroke:c.wlring, 'stroke-width':1.6}));
+    const lb = mk('text', {x:n.x, y:n.y + n.r + 12, 'text-anchor':'middle', 'font-size':10.5, fill:'#12203a'});
+    lb.textContent = n.id; svg.appendChild(lb);
+  });
+}
+async function openWhy(recId){
+  const r = findRec(recId); if(!r) return;
+  document.getElementById('whyTitle').textContent = 'Why this recommendation — ' + (r.workload.name || r.workload_uid || '');
+  document.getElementById('whyEvidence').textContent = r.summary || '';
+  document.getElementById('whyPeers').innerHTML = '';
+  document.getElementById('whySnippet').innerHTML = '';
+  openM('whyModal');
+  try{
+    const ev = await api('/runs/'+state.runId+'/recommendations/'+recId+'/evidence');
+    drawWhy(ev.subgraph || {nodes:[], edges:[]});
+    const peers = ev.peers || [];
+    document.getElementById('whyPeers').innerHTML = peers.length
+      ? '<b class="small muted">Interacting peers</b>' + peers.map(p =>
+          '<div class="peer"><b>'+(p.peer_workload || p.peer_workload_uid || 'peer')+'</b><span class="small muted">'+(p.relation||'')+'</span>'+
+          '<span class="pill blue" style="margin-left:auto">'+(p.avg_count!=null?Math.round(p.avg_count)+'/hr':'—')+
+          ' · '+(p.latency_ms!=null?p.latency_ms.toFixed(1)+'ms':'—')+'</span></div>'
+        ).join('')
+      : '<div class="small muted">No interacting peers recorded for this recommendation.</div>';
+    if(r.suggested_snippet){
+      document.getElementById('whySnippet').innerHTML =
+        '<div class="between" style="margin:14px 0 6px"><b class="small muted">Suggested '+ (r.suggested_mechanism||'nodeAffinity') +' snippet — you apply it yourself</b>'+
+        '<button class="btn sm" onclick="copySnippet(\''+recId+'\')">Copy</button></div>'+
+        '<pre class="snippet" id="snip-'+recId+'">'+escapeHtml(r.suggested_snippet)+'</pre>';
+    }
+  } catch(e){ showErr('Evidence load failed: ' + e.message); }
+}
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function copySnippet(id){
+  const el = document.getElementById('snip-'+id); if(!el) return;
+  const range = document.createRange(); range.selectNode(el);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(range);
+  try{ document.execCommand('copy'); toast('Snippet copied'); } catch(e){ toast('Copy failed'); }
+  window.getSelection().removeAllRanges();
+}
+
+/* =========================== init =========================== */
+loadClusters();
+</script>
+</body>
+</html>
