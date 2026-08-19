@@ -1,0 +1,54 @@
+{{- if .Values.collector.onDemandJob.enabled }}
+# One-shot, on-demand collection. Enable with --set collector.onDemandJob.enabled=true,
+# or run ad hoc: kubectl create job --from=cronjob/<release>-kubehuddle-collector collect-now
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kubehuddle.fullname" . }}-collect-now
+  labels:
+    {{- include "kubehuddle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "kubehuddle.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: collector
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "kubehuddle.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsUser: 65532
+      containers:
+        - name: collector
+          image: "{{ .Values.images.collector.repository }}:{{ .Values.images.collector.tag }}"
+          imagePullPolicy: {{ .Values.images.collector.pullPolicy }}
+          args:
+            - ingest
+            - --metrics
+            - --cluster
+            - {{ .Values.collector.cluster | quote }}
+            - --prom-url
+            - {{ .Values.collector.promUrl | quote }}
+            - --resources
+            - {{ .Values.collector.resources | quote }}
+            - --since
+            - {{ .Values.collector.since | quote }}
+            - --step
+            - {{ .Values.collector.step | quote }}
+            {{- if .Values.collector.namespaces }}
+            - --namespace
+            - {{ .Values.collector.namespaces | quote }}
+            {{- end }}
+          env:
+            {{- include "kubehuddle.dbEnv" . | nindent 12 }}
+          securityContext:
+            {{- include "kubehuddle.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.collector.podResources | nindent 12 }}
+{{- end }}

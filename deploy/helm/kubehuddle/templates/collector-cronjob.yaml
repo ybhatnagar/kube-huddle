@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "kubehuddle.fullname" . }}-collector
+  labels:
+    {{- include "kubehuddle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  schedule: {{ .Values.collector.schedule | quote }}
+  concurrencyPolicy: {{ .Values.collector.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.collector.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.collector.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "kubehuddle.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: collector
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "kubehuddle.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+            runAsUser: 65532
+          containers:
+            - name: collector
+              image: "{{ .Values.images.collector.repository }}:{{ .Values.images.collector.tag }}"
+              imagePullPolicy: {{ .Values.images.collector.pullPolicy }}
+              args:
+                - ingest
+                - --discover
+                - --metrics
+                - --interactions
+                - --latency
+                - --interaction-source
+                - {{ .Values.collector.interactionSource | quote }}
+                - --latency-source
+                - {{ .Values.collector.latencySource | quote }}
+                - --cluster
+                - {{ .Values.collector.cluster | quote }}
+                - --prom-url
+                - {{ .Values.collector.promUrl | quote }}
+                - --resources
+                - {{ .Values.collector.resources | quote }}
+                - --since
+                - {{ .Values.collector.since | quote }}
+                - --step
+                - {{ .Values.collector.step | quote }}
+                {{- if .Values.collector.namespaces }}
+                - --namespace
+                - {{ .Values.collector.namespaces | quote }}
+                {{- end }}
+                {{- range .Values.collector.extraArgs }}
+                - {{ . | quote }}
+                {{- end }}
+              env:
+                {{- include "kubehuddle.dbEnv" . | nindent 16 }}
+              securityContext:
+                {{- include "kubehuddle.containerSecurityContext" . | nindent 16 }}
+              resources:
+                {{- toYaml .Values.collector.podResources | nindent 16 }}

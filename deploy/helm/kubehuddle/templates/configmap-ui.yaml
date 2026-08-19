@@ -1,0 +1,28 @@
+{{- if .Values.ui.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubehuddle.ui.fullname" . }}
+  labels:
+    {{- include "kubehuddle.labels" . | nindent 4 }}
+data:
+  # Serves the static bundle and proxies /api/ to the engine so the browser talks to a
+  # single origin (no CORS needed in-cluster).
+  default.conf: |
+    server {
+      listen       8080;
+      server_name  _;
+      root         /usr/share/nginx/html;
+      index        index.html;
+
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+      location /api/ {
+        proxy_pass http://{{ include "kubehuddle.engine.fullname" . }}:{{ .Values.engine.service.port }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      }
+    }
+{{- end }}

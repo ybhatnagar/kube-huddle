@@ -1,0 +1,129 @@
+# Default values for the kubehuddle chart.
+
+nameOverride: ""
+fullnameOverride: ""
+imagePullSecrets: []
+
+images:
+  collector:
+    repository: kubehuddle/collector
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  engine:
+    repository: kubehuddle/engine
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  ui:
+    repository: kubehuddle/ui
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+# Read-only cluster RBAC for the collector (list/get namespaces, deployments,
+# statefulsets, daemonsets, pods, nodes). The k8s DiscoverConnector (M2) uses this
+# to populate disc_workloads.kind and disc_pods.node_name. Recommend-only — no
+# write verbs anywhere.
+rbac:
+  create: true
+
+# --- database -------------------------------------------------------------
+# Production backend is PostgreSQL. Either bundle the demo Postgres below, point at an
+# external DB via `database.*`, or supply a Secret with a ready-made `dsn` key.
+database:
+  existingSecret: ""        # a Secret containing the full DSN (recommended for prod)
+  existingSecretKey: dsn
+  host: ""                  # used when postgres.enabled=false and no existingSecret
+  port: 5432
+  name: kubehuddle
+  user: kubehuddle
+  password: ""
+  sslmode: require
+
+# Optional in-cluster Postgres — convenient for demos, NOT hardened for production.
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  auth:
+    username: kubehuddle
+    password: kubehuddle
+    database: kubehuddle
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+
+# Run `collector db migrate` as a pre-install/pre-upgrade hook.
+migrate:
+  enabled: true
+
+# --- collector (scheduled ingestion) --------------------------------------
+collector:
+  schedule: "0 * * * *"     # hourly
+  cluster: in-cluster
+  promUrl: "http://prometheus.monitoring:9090"
+  namespaces: ""            # empty = all namespaces
+  resources: "cpu,memory"   # utilization resources (any free-text resource allowed)
+  interactionSource: hubble # interaction source: hubble | istio | otel
+  latencySource: hubble     # latency source: hubble | istio | otel
+  since: "7d"
+  step: "1h"
+  extraArgs: []
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  podResources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  # A one-shot on-demand collection Job (rendered only when enabled).
+  onDemandJob:
+    enabled: false
+  # Long-running trigger service for on-demand collection (POST /ingest), called by the
+  # engine's POST /collections and POST /runs{collectData:true}.
+  service:
+    enabled: true
+    port: 8081
+  serviceResources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+
+# --- engine + API ---------------------------------------------------------
+engine:
+  replicas: 1
+  corsOrigins: "*"          # lock down in production
+  service:
+    type: ClusterIP
+    port: 8000
+  podResources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+# --- UI (optional) --------------------------------------------------------
+ui:
+  enabled: true
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 80
+  podResources:
+    requests: {cpu: 10m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+
+# --- ingress (optional) ---------------------------------------------------
+# Routes / -> UI and /api -> engine on one host (single origin).
+ingress:
+  enabled: false
+  className: ""
+  host: kubehuddle.local
+  annotations: {}
+  tls: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault

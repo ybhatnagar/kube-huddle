@@ -1,0 +1,32 @@
+latencyrec {{ .Chart.AppVersion }} installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Components:
+  • collector  CronJob   schedule "{{ .Values.collector.schedule }}"  (pulls metrics from {{ .Values.collector.promUrl }})
+  • engine     Deployment + Service ({{ include "kubehuddle.engine.fullname" . }}:{{ .Values.engine.service.port }})
+{{- if .Values.ui.enabled }}
+  • ui         Deployment + Service ({{ include "kubehuddle.ui.fullname" . }}:{{ .Values.ui.service.port }})
+{{- end }}
+{{- if .Values.postgres.enabled }}
+  • postgres   bundled demo database (NOT production-hardened — set postgres.enabled=false and point at a real DB for prod)
+{{- end }}
+
+The schema is applied automatically by the migrate hook. The collector runs on its schedule;
+to collect right now:
+
+  kubectl -n {{ .Release.Namespace }} create job --from=cronjob/{{ include "kubehuddle.fullname" . }}-collector collect-now
+
+{{ if .Values.ingress.enabled -}}
+Open the UI at: http://{{ .Values.ingress.host }}/   (API under /api)
+{{- else if .Values.ui.enabled -}}
+Reach the UI (no ingress) with a port-forward:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "kubehuddle.ui.fullname" . }} 8080:{{ .Values.ui.service.port }}
+  # then open http://localhost:8080/
+
+The UI proxies /api to the engine, so the API base auto-resolves to the same origin.
+{{- else -}}
+Reach the API with a port-forward:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "kubehuddle.engine.fullname" . }} 8000:{{ .Values.engine.service.port }}
+  # then GET http://localhost:8000/api/v1/healthz
+{{- end }}

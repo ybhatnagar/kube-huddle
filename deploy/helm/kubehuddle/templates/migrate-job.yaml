@@ -1,0 +1,44 @@
+{{- if .Values.migrate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kubehuddle.fullname" . }}-migrate
+  labels:
+    {{- include "kubehuddle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    # Runs after the DB is created, on every install/upgrade. `db migrate` is idempotent.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        {{- include "kubehuddle.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "kubehuddle.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsUser: 65532
+      {{- if .Values.postgres.enabled }}
+      initContainers:
+        - name: wait-for-db
+          image: {{ .Values.postgres.image | quote }}
+          command: ["sh", "-c", "until pg_isready -h {{ include "kubehuddle.postgres.fullname" . }} -U {{ .Values.postgres.auth.username }}; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            {{- include "kubehuddle.containerSecurityContext" . | nindent 12 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.images.collector.repository }}:{{ .Values.images.collector.tag }}"
+          imagePullPolicy: {{ .Values.images.collector.pullPolicy }}
+          args: ["db", "migrate"]
+          env:
+            {{- include "kubehuddle.dbEnv" . | nindent 12 }}
+          securityContext:
+            {{- include "kubehuddle.containerSecurityContext" . | nindent 12 }}
+{{- end }}

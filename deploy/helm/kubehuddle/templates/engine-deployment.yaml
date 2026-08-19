@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubehuddle.engine.fullname" . }}
+  labels:
+    {{- include "kubehuddle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: engine
+spec:
+  replicas: {{ .Values.engine.replicas }}
+  selector:
+    matchLabels:
+      {{- include "kubehuddle.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: engine
+  template:
+    metadata:
+      labels:
+        {{- include "kubehuddle.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: engine
+    spec:
+      serviceAccountName: {{ include "kubehuddle.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsUser: 10001
+        runAsGroup: 10001
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: engine
+          image: "{{ .Values.images.engine.repository }}:{{ .Values.images.engine.tag }}"
+          imagePullPolicy: {{ .Values.images.engine.pullPolicy }}
+          args: ["serve", "--host", "0.0.0.0", "--port", "8000"]
+          env:
+            {{- include "kubehuddle.dbEnv" . | nindent 12 }}
+            - name: KUBEHUDDLE_CORS_ORIGINS
+              value: {{ .Values.engine.corsOrigins | quote }}
+            - name: TMPDIR
+              value: /tmp
+            {{- if .Values.collector.service.enabled }}
+            - name: KUBEHUDDLE_COLLECTOR_URL
+              value: "http://{{ include "kubehuddle.fullname" . }}-collector-svc:{{ .Values.collector.service.port }}"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /api/v1/healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            {{- include "kubehuddle.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.engine.podResources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

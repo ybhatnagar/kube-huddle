@@ -1,0 +1,118 @@
+# Synthetic workloads for the latency real-collection demo, in namespace `demo-latency`.
+#
+# Two ALLOCATION groups (k-means clusters on requests/limits), each graded on BOTH cpu
+# AND memory so the default equal-weight ranking recovers the order with no slider tuning:
+#
+#   serving-* (large alloc: 500m/1 cpu, 512Mi/1Gi mem)   batch-* (small alloc: 50m/200m cpu, 64Mi/128Mi)
+#     serving-hot   full cpu + 256Mi held -> Guaranteed   batch-hot   full cpu + 32Mi -> Guaranteed
+#     serving-warm  ~50% cpu + 128Mi held -> Burstable    batch-warm  ~50% cpu + 16Mi -> Burstable
+#     serving-idle  idle    +  32Mi held -> BestEffort    batch-idle  idle    +  4Mi -> BestEffort
+#
+# Each pod allocates a memory balloon (`M=$(yes x | head -c N)`) sized to its tier and
+# re-reads it (`echo "$M" >/dev/null`) to keep it hot; the touch cadence also sets the cpu
+# tier (hot touches continuously => full cpu; idle every 8s => ~0). On a normal k8s cluster
+# (swap OFF, the kubelet default) the balloon stays resident and BOTH cpu and memory grade
+# hot>warm>idle, so the default equal weights recover the ranking.
+#   CAVEAT — Docker Desktop / kind nodes often run with swap ON and limited RAM, so under
+#   sustained pressure the cold balloon pages get swapped out and drop from
+#   container_memory_working_set_bytes; memory then reads as noise there. On Docker Desktop,
+#   rank on CPU (weights cpu=1, memory=0) — cpu is swap-immune. This is an environment quirk,
+#   not an engine limitation.
+# kube-state-metrics gives requests/limits (allocations, identical within a group => 2
+# clusters); cAdvisor gives cpu + memory utilization (graded => within-group ranking).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-latency
+---
+# ---------- serving group (large allocation) ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: serving-hot, namespace: demo-latency, labels: {app: serving-hot, group: serving}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: serving-hot}}
+  template:
+    metadata: {labels: {app: serving-hot, group: serving}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 268435456); while true; do echo \"$M\" >/dev/null; done"]
+          resources: {requests: {cpu: 500m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: serving-warm, namespace: demo-latency, labels: {app: serving-warm, group: serving}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: serving-warm}}
+  template:
+    metadata: {labels: {app: serving-warm, group: serving}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 134217728); while true; do t=$(( $(date +%s)+4 )); while [ $(date +%s) -lt $t ]; do :; done; echo \"$M\" >/dev/null; sleep 4; done"]
+          resources: {requests: {cpu: 500m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: serving-idle, namespace: demo-latency, labels: {app: serving-idle, group: serving}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: serving-idle}}
+  template:
+    metadata: {labels: {app: serving-idle, group: serving}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 33554432); while true; do echo \"$M\" >/dev/null; sleep 8; done"]
+          resources: {requests: {cpu: 500m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+---
+# ---------- batch group (small allocation) ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: batch-hot, namespace: demo-latency, labels: {app: batch-hot, group: batch}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: batch-hot}}
+  template:
+    metadata: {labels: {app: batch-hot, group: batch}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 33554432); while true; do echo \"$M\" >/dev/null; done"]
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 200m, memory: 128Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: batch-warm, namespace: demo-latency, labels: {app: batch-warm, group: batch}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: batch-warm}}
+  template:
+    metadata: {labels: {app: batch-warm, group: batch}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 16777216); while true; do t=$(( $(date +%s)+4 )); while [ $(date +%s) -lt $t ]; do :; done; echo \"$M\" >/dev/null; sleep 4; done"]
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 200m, memory: 128Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: batch-idle, namespace: demo-latency, labels: {app: batch-idle, group: batch}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: batch-idle}}
+  template:
+    metadata: {labels: {app: batch-idle, group: batch}}
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "M=$(yes x | head -c 4194304); while true; do echo \"$M\" >/dev/null; sleep 8; done"]
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 200m, memory: 128Mi}}

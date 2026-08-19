@@ -1,0 +1,36 @@
+# Trimmed kube-prometheus-stack for the local demo: just Prometheus + kube-state-metrics
+# (which provides the kube_pod_owner mapping + the workload recording rules the collector's
+# PromQL joins against). Grafana/Alertmanager/node-exporter and the control-plane scrape
+# targets kind doesn't expose are disabled to keep the footprint small.
+grafana:
+  enabled: false
+alertmanager:
+  enabled: false
+nodeExporter:
+  enabled: false
+kubeStateMetrics:
+  enabled: true
+
+kubeControllerManager: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeEtcd: {enabled: false}
+kubeProxy: {enabled: false}
+
+prometheusOperator:
+  resources:
+    requests: {cpu: 50m, memory: 100Mi}
+    limits: {cpu: 200m, memory: 256Mi}
+  admissionWebhooks:
+    enabled: false            # skip the webhook cert Jobs for a lighter, faster install
+  tls:
+    enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 12h
+    scrapeInterval: 30s
+    # analyze workloads in these namespaces (our synthetic demo + the app itself)
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {cpu: "1", memory: 1Gi}
+    # emptyDir storage (default) — fine for an ephemeral demo.

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: kubehuddle
+description: >-
+  Kube Huddle — a scheduled collector (CronJob), the engine + REST API, and an optional
+  web UI. Detects low-latency node groups agentlessly from existing traffic, recommends where to
+  replicate or migrate services for performance and cost. Never mutates the target cluster.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - latency
+  - network
+  - node-groups
+  - cost-optimization
+sources:
+  - https://example.com/kube-huddle
+maintainers:
+  - name: Yash Bhatnagar
