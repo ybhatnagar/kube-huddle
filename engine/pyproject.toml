@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kubehuddle-engine"
+version = "0.1.0"
+description = "Kube Huddle — Module 2: core engine (docs/05, docs/04)"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24,<2.1",
+    "pandas>=2.0,<2.3",
+    "networkx>=3.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+# Postgres is the production backend; SQLite (stdlib) is the dev fallback.
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[project.scripts]
+kubehuddle-engine = "engine.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["engine*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
