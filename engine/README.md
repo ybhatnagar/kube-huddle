@@ -48,4 +48,4 @@ surface.
 
 - The four pipeline stages (`smooth`, `weigh`, `group`, `whatif`) are pure functions with no I/O. The `runner.py` is the only place they meet the state DB.
 - `analysis_core/` holds reusable primitives; a second recommender head would add its own `recommenders/<head>/` package and register in `engine/runner.py`'s dispatch.
-- Contract tests in `tests/test_api_latency.py` assert the DTO shapes against [`design-docs/04-schema-and-api.md §E`](../design-docs/04-schema-and-api.md). Keep them green.
+- Contract tests in `tests/test_api_latency.py` assert the DTO shapes against the reference in [`../docs/api.md`](../docs/api.md). Keep them green.

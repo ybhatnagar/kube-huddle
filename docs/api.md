@@ -278,7 +278,10 @@ Same shape as an entry in `/runs`.
 
 ## Latency-run payloads
 
-All the shapes below match [`design-docs/04-schema-and-api.md §E`](../design-docs/04-schema-and-api.md) verbatim.
+The DTO shapes below are the cross-module contract. The engine's contract tests
+(`engine/tests/test_api_latency.py`) assert every field, so PRs that reshape a
+DTO have to update both the builder in `engine/engine/api/dto.py` and the docs
+here.
 
 ### `GET /runs/{id}/groups` → `{groups: LatencyGroupDTO[]}`
 
