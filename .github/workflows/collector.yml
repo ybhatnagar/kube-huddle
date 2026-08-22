@@ -1,0 +1,46 @@
+name: Collector (Go)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collector/**'
+      - '.github/workflows/collector.yml'
+  pull_request:
+    paths:
+      - 'collector/**'
+      - '.github/workflows/collector.yml'
+
+# Cancel superseded runs on the same ref (typical rebase/force-push).
+concurrency:
+  group: collector-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.23', '1.24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: collector/go.sum
+
+      - name: go vet
+        working-directory: collector
+        run: go vet ./...
+
+      - name: go build
+        working-directory: collector
+        run: go build -o bin/collector ./cmd/collector
+
+      - name: go test
+        working-directory: collector
+        run: go test -race -v ./...
