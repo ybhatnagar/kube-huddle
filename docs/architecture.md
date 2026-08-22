@@ -182,12 +182,12 @@ split.
 
 - **Every algorithm stage is a pure function.** No wall-clock, no `random` calls (except deterministically for run-name slugs), no environment lookups.
 - **Synthetic fixtures cover every code path.** `engine/synth/` provides `fig2_cluster` (the disclosure's canonical 8-node cover), `sparse_migration_cluster` (3 clean islands + 1 low-volume straddler → triggers a migrate rec), and `no_data_cluster` (isolated node → low-confidence replicate).
-- **46 unit + contract tests on the engine**, **6 on the collector**. Every DTO shape is asserted against docs/04 §E. Every stage is asserted against known-answer fixtures. The Fig.2 known-answer test locks in the exact 5-group cover at total ratio ≈ 0.35.
+- **46 unit + contract tests on the engine**, **6 on the collector**. Every DTO shape is asserted against the shapes documented in [`docs/api.md`](api.md). Every stage is asserted against known-answer fixtures. The Fig.2 known-answer test locks in the exact 5-group cover at total ratio ≈ 0.35.
 
 ## References
 
-- **`design-docs/01-understanding.md`** — the problem statement + exact algorithm (the anchor).
-- **`design-docs/03-collector-design.md`** — Module 1 (collector) design notes.
-- **`design-docs/05-engine-design.md`** — Module 2 (engine) design notes.
-- **`design-docs/07-ui-design.md`** — Module 3 (UI) design notes.
-- **`design-docs/04-schema-and-api.md`** — the cross-module contract in full detail.
+- [`docs/node-groups.md`](node-groups.md) — the algorithm in one place: how each pipeline stage works and why.
+- [`docs/api.md`](api.md) — full REST + DTO reference; the cross-module contract.
+- [`docs/deployment.md`](deployment.md) — Helm chart, kind/minikube, external DB, RBAC.
+- Module readmes: [`collector/README.md`](../collector/README.md), [`engine/README.md`](../engine/README.md), [`ui/README.md`](../ui/README.md).
+- Source of truth for the database contract: the migration files under [`collector/internal/store/migrations/`](../collector/internal/store/migrations/).

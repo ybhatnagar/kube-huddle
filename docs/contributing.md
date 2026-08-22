@@ -72,8 +72,9 @@ cd collector && go test ./...
 ```
 
 Contract tests live in `engine/tests/test_api_latency.py` — assert every DTO
-shape against `design-docs/04-schema-and-api.md §E`. **Don't loosen them.** If
-you need a new field, add it and update both the DTO builder and the doc.
+shape against the reference in [`docs/api.md`](api.md). **Don't loosen them.**
+If you need a new field, add it and update the DTO builder in
+`engine/engine/api/dto.py` and `docs/api.md` in the same PR.
 
 ## Contracts (please respect these)
 
@@ -111,18 +112,18 @@ Then update `deploy/helm/kubehuddle/Chart.yaml` (`version:` for the chart,
 `appVersion:` for the images) and `values.yaml` (`images.*.tag`) and cut a
 Helm release with `helm package + helm repo index`.
 
-## Design docs vs user docs
+## Documentation
 
-Two doc trees, on purpose:
+If you touch behavior, update `docs/` in the same PR:
 
-- **`design-docs/`** — technical design authored during the build (docs 01–07,
-  M1–M6 notes, build prompts). Point of view: the author designing the
-  system. Not maintained after a milestone lands.
-- **`docs/`** — user-facing docs (this dir). Point of view: someone who wants
-  to use / understand / deploy / hack on the tool. Kept current.
+- **User flows** → `docs/quickstart.md`, `docs/deployment.md`.
+- **Algorithm / stage semantics** → `docs/node-groups.md`.
+- **REST or DTO shapes** → `docs/api.md`.
+- **Module wiring** → `docs/architecture.md` + the affected module readme.
 
-If you touch behavior, update `docs/`. If you're documenting an old decision
-you undid, update the relevant M*-NOTES.md in `design-docs/`.
+Keep the top-level `README.md` in sync with `docs/` — the tagline, the
+walkthrough, and the "Not built yet" list are load-bearing for anyone
+evaluating the tool.
 
 ## Reporting a bug
 

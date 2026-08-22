@@ -5,9 +5,16 @@ works, why it's shaped the way it is, and how it produces the two things
 users see: the **island orb** (showback) and the **replicate/migrate
 recommendations** (actionable output).
 
-If you want the code, it's in `engine/engine/recommenders/latency/`. If you
-want the disclosure-level anchor, see
-[`design-docs/01-understanding.md`](../design-docs/01-understanding.md).
+If you want the code, it's in `engine/engine/recommenders/latency/`. The
+four stages there — `smooth.py`, `weigh.py`, `group.py`, `whatif.py` — are
+pure functions; every rule below maps to a specific one.
+
+The mechanic is inspired by the KubeCon NA 2023 *"Huddle — Insightful latency
+optimizer for complex and sparse app flows"* talk (Yash Bhatnagar), and by
+the VMware invention disclosure that preceded it. The engine here is the
+open-source reimplementation of that idea on a CNCF stack (Cilium/Hubble as
+the default latency source, OpenCost for the cost side, NetworkX for graph
+math, everything read-only).
 
 ## Inputs
 
